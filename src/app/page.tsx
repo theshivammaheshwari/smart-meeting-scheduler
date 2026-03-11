@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   Calendar,
@@ -332,6 +333,16 @@ export default function LandingPage() {
             className="mb-8 rounded-xl border bg-card p-6 text-center shadow-sm"
           >
             <p className="mb-3 text-sm font-medium text-muted-foreground">This website was developed by</p>
+            <div className="flex justify-center mb-4">
+              <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-primary/30 shadow-lg">
+                <Image
+                  src="/shivam.png"
+                  alt="Shivam Maheshwari"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            </div>
             <h3 className="text-2xl font-bold">Mr. Shivam Maheshwari</h3>
             <div className="mt-4 flex flex-col items-center gap-2 text-sm text-muted-foreground sm:flex-row sm:justify-center sm:gap-6">
               <a href="tel:+919468955596" className="flex items-center gap-1.5 hover:text-foreground transition-colors">
@@ -363,6 +374,40 @@ export default function LandingPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 rounded-full border px-4 py-1.5 transition-colors hover:bg-sky-500/10 hover:text-sky-500 hover:border-sky-500/30"
+              >
+                LinkedIn
+              </a>
+            </div>
+          </motion.div>
+
+          {/* Grateful Section */}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            custom={1}
+            className="mb-8 rounded-xl border bg-card p-6 text-center shadow-sm"
+          >
+            <p className="mb-3 text-sm font-medium text-muted-foreground">Grateful to</p>
+            <div className="flex justify-center mb-4">
+              <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-primary/30 shadow-lg">
+                <Image
+                  src="/abhishek.png"
+                  alt="Abhishek Jain"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold">Mr. Abhishek Jain</h3>
+            <p className="mt-2 text-muted-foreground">for providing insightful suggestions.</p>
+            <div className="mt-4 flex justify-center">
+              <a
+                href="https://www.linkedin.com/in/abhishek-jain007/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm transition-colors hover:bg-sky-500/10 hover:text-sky-500 hover:border-sky-500/30"
               >
                 LinkedIn
               </a>

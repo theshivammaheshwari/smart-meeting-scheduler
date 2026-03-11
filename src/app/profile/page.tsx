@@ -120,7 +120,7 @@ export default function ProfilePage() {
 
     if (uploadError) {
       console.error("Upload error:", uploadError);
-      alert("Upload failed. Make sure 'avatars' storage bucket exists in Supabase.");
+      alert("Upload failed: " + uploadError.message);
       setUploading(false);
       return;
     }
