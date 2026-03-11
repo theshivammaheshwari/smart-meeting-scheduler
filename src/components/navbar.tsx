@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Calendar, Bell, LogOut, Menu, X, Briefcase } from "lucide-react";
+import { Calendar, Bell, LogOut, Menu, X, Briefcase, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +38,12 @@ export function Navbar() {
                 <Button variant="ghost" size="sm">
                   <Briefcase className="mr-2 h-4 w-4" />
                   Productivity
+                </Button>
+              </Link>
+              <Link href="/profile">
+                <Button variant="ghost" size="sm">
+                  <UserCircle className="mr-2 h-4 w-4" />
+                  Profile
                 </Button>
               </Link>
               <Link href="/dashboard" className="relative">
@@ -93,6 +99,12 @@ export function Navbar() {
                   <Button variant="ghost" className="w-full justify-start">
                     <Briefcase className="mr-2 h-4 w-4" />
                     Productivity
+                  </Button>
+                </Link>
+                <Link href="/profile" onClick={() => setMobileOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start">
+                    <UserCircle className="mr-2 h-4 w-4" />
+                    Profile
                   </Button>
                 </Link>
                 <Button variant="ghost" className="w-full justify-start" onClick={() => { signOut(); setMobileOpen(false); }}>

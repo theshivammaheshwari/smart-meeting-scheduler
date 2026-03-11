@@ -20,6 +20,9 @@ import {
   Copy,
   Check,
   Globe,
+  Video,
+  MessageCircle,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +45,7 @@ import {
   generateTimeslots,
 } from "@/hooks/use-availability";
 import { useMeetings } from "@/hooks/use-meetings";
+import { useGroupChat } from "@/hooks/use-group-chat";
 import { createClient } from "@/lib/supabase/client";
 import { getTimezoneAbbr } from "@/lib/timezones";
 import Link from "next/link";
@@ -63,9 +67,10 @@ export default function GroupPage() {
     getSlotCount,
     refetch: refetchAvail,
   } = useAvailability(groupId, user?.id);
-  const { meeting, scheduleMeeting } = useMeetings(groupId);
+  const { meeting, scheduleMeeting, updateMeetLink } = useMeetings(groupId);
+  const { messages: chatMessages, loading: chatLoading, sendMessage } = useGroupChat(groupId);
 
-  const [activeTab, setActiveTab] = useState<"availability" | "members" | "results">("availability");
+  const [activeTab, setActiveTab] = useState<"availability" | "members" | "results" | "chat">("availability");
   const [inviteEmails, setInviteEmails] = useState<string[]>([]);
   const [currentEmail, setCurrentEmail] = useState("");
   const [inviting, setInviting] = useState(false);
@@ -76,6 +81,11 @@ export default function GroupPage() {
   const [shareCode, setShareCode] = useState<string | null>(null);
   const [codeCopied, setCodeCopied] = useState(false);
   const [generatingCode, setGeneratingCode] = useState(false);
+  const [meetLinkInput, setMeetLinkInput] = useState("");
+  const [showMeetLinkEdit, setShowMeetLinkEdit] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [sendingChat, setSendingChat] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   const supabaseRef = useRef(createClient());
   const supabase = supabaseRef.current;
@@ -271,15 +281,100 @@ export default function GroupPage() {
           className="mb-8"
         >
           <Card className="border-green-500/30 bg-green-500/5">
-            <CardContent className="flex items-center gap-4 p-6">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/20">
-                <CheckCircle className="h-6 w-6 text-success" />
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/20">
+                  <CheckCircle className="h-6 w-6 text-success" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg">Meeting Confirmed!</h3>
+                  <p className="text-muted-foreground">
+                    {meeting.scheduled_day} at {meeting.scheduled_time}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-lg">Meeting Confirmed!</h3>
-                <p className="text-muted-foreground">
-                  {meeting.scheduled_day} at {meeting.scheduled_time}
-                </p>
+
+              {/* Meet Link Section */}
+              <div className="mt-4 flex flex-col gap-2 border-t border-green-500/20 pt-4">
+                {meeting.meet_link ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Video className="h-4 w-4 text-blue-500" />
+                    <a
+                      href={meeting.meet_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium text-blue-500 hover:underline break-all"
+                    >
+                      {meeting.meet_link}
+                    </a>
+                    {userRole === "admin" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => {
+                          setMeetLinkInput(meeting.meet_link || "");
+                          setShowMeetLinkEdit(true);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                    )}
+                  </div>
+                ) : userRole === "admin" ? (
+                  <div className="flex items-center gap-2">
+                    <Video className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">No meeting link yet</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => {
+                        setMeetLinkInput("");
+                        setShowMeetLinkEdit(true);
+                      }}
+                    >
+                      <Link2 className="mr-1 h-3 w-3" />
+                      Add Link
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Video className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">No meeting link added yet</span>
+                  </div>
+                )}
+
+                {/* Meet Link Edit Inline */}
+                {showMeetLinkEdit && (
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      placeholder="https://meet.google.com/..."
+                      value={meetLinkInput}
+                      onChange={(e) => setMeetLinkInput(e.target.value)}
+                      className="flex-1 h-8 text-sm"
+                    />
+                    <Button
+                      size="sm"
+                      className="h-8"
+                      onClick={async () => {
+                        const link = meetLinkInput.trim();
+                        await updateMeetLink(link || null);
+                        setShowMeetLinkEdit(false);
+                      }}
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => setShowMeetLinkEdit(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -474,6 +569,7 @@ export default function GroupPage() {
           { key: "availability" as const, label: "Availability", icon: Calendar },
           { key: "members" as const, label: "Members", icon: Users },
           { key: "results" as const, label: "Best Times", icon: Trophy },
+          { key: "chat" as const, label: "Chat", icon: MessageCircle },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -546,6 +642,114 @@ export default function GroupPage() {
               onSchedule={handleSchedule}
               confirmedMeeting={meeting}
             />
+          </motion.div>
+        )}
+
+        {activeTab === "chat" && (
+          <motion.div
+            key="chat"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <MessageCircle className="h-5 w-5" />
+                  Group Chat
+                </CardTitle>
+                <CardDescription>Chat with your group members</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Messages */}
+                <div className="h-[400px] overflow-y-auto rounded-lg border bg-muted/30 p-4 space-y-3 mb-4">
+                  {chatLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                      <span className="text-muted-foreground text-sm">Loading messages...</span>
+                    </div>
+                  ) : chatMessages.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                      <MessageCircle className="h-8 w-8 mb-2" />
+                      <span className="text-sm">No messages yet. Start the conversation!</span>
+                    </div>
+                  ) : (
+                    chatMessages.map((msg) => {
+                      const isMe = msg.user_id === user?.id;
+                      return (
+                        <motion.div
+                          key={msg.id}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className={`flex gap-2 ${isMe ? "flex-row-reverse" : ""}`}
+                        >
+                          <Avatar className="h-8 w-8 shrink-0">
+                            {msg.user?.avatar_url && (
+                              <AvatarImage src={msg.user.avatar_url} />
+                            )}
+                            <AvatarFallback className="text-xs">
+                              {msg.user?.full_name?.charAt(0)?.toUpperCase() || "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className={`max-w-[70%] ${isMe ? "text-right" : ""}`}>
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <span className={`text-xs font-medium ${isMe ? "order-2" : ""}`}>
+                                {isMe ? "You" : msg.user?.full_name || "Unknown"}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">
+                                {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            </div>
+                            <div
+                              className={`inline-block rounded-lg px-3 py-2 text-sm ${
+                                isMe
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-background border"
+                              }`}
+                            >
+                              {msg.message}
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })
+                  )}
+                  <div ref={chatEndRef} />
+                </div>
+
+                {/* Chat Input */}
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Type a message..."
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter" && !e.shiftKey && chatInput.trim() && user) {
+                        e.preventDefault();
+                        setSendingChat(true);
+                        await sendMessage(user.id, chatInput);
+                        setChatInput("");
+                        setSendingChat(false);
+                        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+                      }
+                    }}
+                    disabled={sendingChat}
+                  />
+                  <Button
+                    onClick={async () => {
+                      if (!chatInput.trim() || !user) return;
+                      setSendingChat(true);
+                      await sendMessage(user.id, chatInput);
+                      setChatInput("");
+                      setSendingChat(false);
+                      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    disabled={sendingChat || !chatInput.trim()}
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
         )}
       </AnimatePresence>

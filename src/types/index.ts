@@ -3,6 +3,7 @@ export interface User {
   email: string;
   full_name: string | null;
   avatar_url: string | null;
+  bio: string | null;
   timezone: string;
   created_at: string;
 }
@@ -11,9 +12,10 @@ export interface Group {
   id: string;
   name: string;
   description: string | null;
-  slot_duration: number; // in minutes: 30, 60, 90, 120
+  slot_duration: number;
   availability_deadline: string | null;
   join_code: string | null;
+  meet_link: string | null;
   created_by: string;
   created_at: string;
 }
@@ -49,6 +51,7 @@ export interface Meeting {
   group_id: string;
   scheduled_day: string;
   scheduled_time: string;
+  meet_link: string | null;
   created_by: string;
   created_at: string;
 }
@@ -73,6 +76,17 @@ export interface RecommendedSlot {
 
 export interface GroupWithMembers extends Group {
   group_members: (GroupMember & { users: User })[];
+}
+
+/* ─── Group Chat Types ─── */
+
+export interface GroupMessage {
+  id: string;
+  group_id: string;
+  user_id: string;
+  message: string;
+  created_at: string;
+  user?: User;
 }
 
 /* ─── Habit Tracker Types ─── */

@@ -66,5 +66,17 @@ export function useMeetings(groupId: string) {
     return data;
   };
 
-  return { meeting, loading, scheduleMeeting, refetch: fetchMeeting };
+  const updateMeetLink = async (meetLink: string | null) => {
+    if (!meeting) return;
+    const { error } = await supabase
+      .from("meetings")
+      .update({ meet_link: meetLink })
+      .eq("id", meeting.id);
+    if (!error) {
+      setMeeting((prev) => (prev ? { ...prev, meet_link: meetLink } : prev));
+    }
+    return error;
+  };
+
+  return { meeting, loading, scheduleMeeting, updateMeetLink, refetch: fetchMeeting };
 }

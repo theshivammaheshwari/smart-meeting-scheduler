@@ -602,3 +602,43 @@ create policy "Users can update own mood entries"
 create policy "Users can delete own mood entries"
   on public.mood_entries for delete to authenticated
   using (user_id = auth.uid());
+
+-- ========================
+-- VIDEO CALL LINK + GROUP CHAT + PROFILE
+-- ========================
+
+-- Add bio to users table
+alter table public.users add column if not exists bio text;
+
+-- Add meet_link to groups table (admin sets it)
+alter table public.groups add column if not exists meet_link text;
+
+-- Add meet_link to meetings table
+alter table public.meetings add column if not exists meet_link text;
+
+-- 13. Group Messages table (group chat)
+create table if not exists public.group_messages (
+  id uuid default gen_random_uuid() primary key,
+  group_id uuid references public.groups(id) on delete cascade not null,
+  user_id uuid references public.users(id) on delete cascade not null,
+  message text not null,
+  created_at timestamptz default now()
+);
+
+alter table public.group_messages enable row level security;
+
+-- Group messages policies: members can read & send messages in their groups
+create policy "Members can read group messages"
+  on public.group_messages for select to authenticated
+  using (public.is_member_of_group(group_id));
+
+create policy "Members can send group messages"
+  on public.group_messages for insert to authenticated
+  with check (public.is_member_of_group(group_id) and user_id = auth.uid());
+
+create policy "Users can delete own group messages"
+  on public.group_messages for delete to authenticated
+  using (user_id = auth.uid());
+
+-- Enable realtime for group_messages
+alter publication supabase_realtime add table public.group_messages;
