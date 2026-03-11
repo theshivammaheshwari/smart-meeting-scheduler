@@ -85,6 +85,19 @@ export interface GroupMessage {
   group_id: string;
   user_id: string;
   message: string;
+  file_url: string | null;
+  file_type: string | null;
+  created_at: string;
+  user?: User;
+}
+
+export interface Announcement {
+  id: string;
+  group_id: string;
+  user_id: string;
+  title: string;
+  content: string;
+  pinned: boolean;
   created_at: string;
   user?: User;
 }

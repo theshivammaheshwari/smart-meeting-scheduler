@@ -24,6 +24,11 @@ import {
   MessageCircle,
   Link2,
   Trash2,
+  Paperclip,
+  FileText,
+  Pin,
+  Megaphone,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,6 +52,7 @@ import {
 } from "@/hooks/use-availability";
 import { useMeetings } from "@/hooks/use-meetings";
 import { useGroupChat } from "@/hooks/use-group-chat";
+import { useAnnouncements } from "@/hooks/use-announcements";
 import { createClient } from "@/lib/supabase/client";
 import { getTimezoneAbbr } from "@/lib/timezones";
 import Link from "next/link";
@@ -69,9 +75,10 @@ export default function GroupPage() {
     refetch: refetchAvail,
   } = useAvailability(groupId, user?.id);
   const { meeting, scheduleMeeting, updateMeetLink } = useMeetings(groupId);
-  const { messages: chatMessages, loading: chatLoading, sendMessage } = useGroupChat(groupId);
+  const { messages: chatMessages, loading: chatLoading, sendMessage, uploadFile } = useGroupChat(groupId);
+  const { announcements, loading: announcementsLoading, createAnnouncement, togglePin, deleteAnnouncement } = useAnnouncements(groupId);
 
-  const [activeTab, setActiveTab] = useState<"availability" | "members" | "results" | "chat">("availability");
+  const [activeTab, setActiveTab] = useState<"availability" | "members" | "results" | "chat" | "announcements">("availability");
   const [inviteEmails, setInviteEmails] = useState<string[]>([]);
   const [currentEmail, setCurrentEmail] = useState("");
   const [inviting, setInviting] = useState(false);
@@ -86,7 +93,13 @@ export default function GroupPage() {
   const [showMeetLinkEdit, setShowMeetLinkEdit] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const [sendingChat, setSendingChat] = useState(false);
+  const [fileUploading, setFileUploading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [announcementTitle, setAnnouncementTitle] = useState("");
+  const [announcementContent, setAnnouncementContent] = useState("");
+  const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
+  const [creatingAnnouncement, setCreatingAnnouncement] = useState(false);
 
   const supabaseRef = useRef(createClient());
   const supabase = supabaseRef.current;
@@ -582,6 +595,7 @@ export default function GroupPage() {
           { key: "members" as const, label: "Members", icon: Users },
           { key: "results" as const, label: "Best Times", icon: Trophy },
           { key: "chat" as const, label: "Chat", icon: MessageCircle },
+          { key: "announcements" as const, label: "Announcements", icon: Megaphone },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -717,15 +731,42 @@ export default function GroupPage() {
                                 {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                               </span>
                             </div>
-                            <div
-                              className={`inline-block rounded-lg px-3 py-2 text-sm ${
-                                isMe
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-background border"
-                              }`}
-                            >
-                              {msg.message}
-                            </div>
+                            {/* File preview */}
+                            {msg.file_url && msg.file_type === "image" && (
+                              <a href={msg.file_url} target="_blank" rel="noopener noreferrer" className="block mb-1">
+                                <img
+                                  src={msg.file_url}
+                                  alt="Shared image"
+                                  className="max-w-full max-h-48 rounded-lg border object-cover"
+                                />
+                              </a>
+                            )}
+                            {msg.file_url && msg.file_type === "pdf" && (
+                              <a
+                                href={msg.file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm mb-1 ${
+                                  isMe ? "bg-primary/80 text-primary-foreground" : "bg-background border"
+                                }`}
+                              >
+                                <FileText className="h-4 w-4 shrink-0" />
+                                <span className="truncate">PDF Document</span>
+                                <Download className="h-3.5 w-3.5 shrink-0 ml-auto" />
+                              </a>
+                            )}
+                            {/* Text message (hide "Shared a file" if we already show the file) */}
+                            {!(msg.file_url && msg.message === "Shared a file") && msg.message && (
+                              <div
+                                className={`inline-block rounded-lg px-3 py-2 text-sm ${
+                                  isMe
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-background border"
+                                }`}
+                              >
+                                {msg.message}
+                              </div>
+                            )}
                           </div>
                         </motion.div>
                       );
@@ -736,6 +777,38 @@ export default function GroupPage() {
 
                 {/* Chat Input */}
                 <div className="flex gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file || !user) return;
+                      setFileUploading(true);
+                      const result = await uploadFile(file);
+                      if (result) {
+                        await sendMessage(user.id, "", result.url, result.type);
+                        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+                      }
+                      setFileUploading(false);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={fileUploading}
+                    title="Attach file (images or PDF)"
+                  >
+                    {fileUploading ? (
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    ) : (
+                      <Paperclip className="h-4 w-4" />
+                    )}
+                  </Button>
                   <Input
                     placeholder="Type a message..."
                     value={chatInput}
@@ -766,6 +839,160 @@ export default function GroupPage() {
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {activeTab === "announcements" && (
+          <motion.div
+            key="announcements"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+          >
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Megaphone className="h-5 w-5" />
+                      Announcements
+                    </CardTitle>
+                    <CardDescription>Important updates from the admin</CardDescription>
+                  </div>
+                  {userRole === "admin" && (
+                    <Button
+                      size="sm"
+                      onClick={() => setShowAnnouncementForm(!showAnnouncementForm)}
+                    >
+                      <Plus className="mr-1 h-4 w-4" />
+                      New
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* New Announcement Form */}
+                <AnimatePresence>
+                  {showAnnouncementForm && userRole === "admin" && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden mb-4"
+                    >
+                      <div className="rounded-lg border p-4 space-y-3 bg-muted/30">
+                        <Input
+                          placeholder="Announcement title"
+                          value={announcementTitle}
+                          onChange={(e) => setAnnouncementTitle(e.target.value)}
+                        />
+                        <textarea
+                          placeholder="Write your announcement..."
+                          value={announcementContent}
+                          onChange={(e) => setAnnouncementContent(e.target.value)}
+                          rows={3}
+                          className="w-full rounded-md border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setShowAnnouncementForm(false);
+                              setAnnouncementTitle("");
+                              setAnnouncementContent("");
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            size="sm"
+                            disabled={!announcementTitle.trim() || !announcementContent.trim() || creatingAnnouncement}
+                            onClick={async () => {
+                              if (!user) return;
+                              setCreatingAnnouncement(true);
+                              await createAnnouncement(user.id, announcementTitle, announcementContent);
+                              setAnnouncementTitle("");
+                              setAnnouncementContent("");
+                              setShowAnnouncementForm(false);
+                              setCreatingAnnouncement(false);
+                            }}
+                          >
+                            {creatingAnnouncement ? "Posting..." : "Post Announcement"}
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Announcements List */}
+                {announcementsLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <span className="text-muted-foreground text-sm">Loading announcements...</span>
+                  </div>
+                ) : announcements.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                    <Megaphone className="h-8 w-8 mb-2" />
+                    <span className="text-sm">No announcements yet.</span>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {announcements.map((ann, i) => (
+                      <motion.div
+                        key={ann.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className={`rounded-lg border p-4 ${
+                          ann.pinned ? "border-amber-500/40 bg-amber-500/5" : ""
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              {ann.pinned && <Pin className="h-3.5 w-3.5 text-amber-500" />}
+                              <h4 className="font-semibold text-sm">{ann.title}</h4>
+                            </div>
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{ann.content}</p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="text-[11px] text-muted-foreground">
+                                by {ann.user?.full_name || "Admin"}
+                              </span>
+                              <span className="text-[11px] text-muted-foreground">
+                                {new Date(ann.created_at).toLocaleDateString()} {new Date(ann.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            </div>
+                          </div>
+                          {userRole === "admin" && (
+                            <div className="flex gap-1 shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => togglePin(ann.id, ann.pinned)}
+                                title={ann.pinned ? "Unpin" : "Pin"}
+                              >
+                                <Pin className={`h-3.5 w-3.5 ${ann.pinned ? "text-amber-500" : ""}`} />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                                onClick={() => deleteAnnouncement(ann.id)}
+                                title="Delete"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>

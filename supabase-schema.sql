@@ -642,3 +642,44 @@ create policy "Users can delete own group messages"
 
 -- Enable realtime for group_messages
 alter publication supabase_realtime add table public.group_messages;
+
+-- ═══════════════════════════════════════════════════
+-- FILE SHARING: Add columns to group_messages
+-- ═══════════════════════════════════════════════════
+alter table public.group_messages add column if not exists file_url text;
+alter table public.group_messages add column if not exists file_type text;
+
+-- ═══════════════════════════════════════════════════
+-- 14. Group Announcements table
+-- ═══════════════════════════════════════════════════
+create table if not exists public.group_announcements (
+  id uuid default gen_random_uuid() primary key,
+  group_id uuid references public.groups(id) on delete cascade not null,
+  user_id uuid references public.users(id) on delete cascade not null,
+  title text not null,
+  content text not null,
+  pinned boolean default false,
+  created_at timestamptz default now()
+);
+
+alter table public.group_announcements enable row level security;
+
+-- Members can read announcements
+create policy "Members can read announcements"
+  on public.group_announcements for select to authenticated
+  using (public.is_member_of_group(group_id));
+
+-- Only admins can create announcements
+create policy "Admins can create announcements"
+  on public.group_announcements for insert to authenticated
+  with check (public.is_admin_of_group(group_id) and user_id = auth.uid());
+
+-- Only admins can update announcements (pin/unpin)
+create policy "Admins can update announcements"
+  on public.group_announcements for update to authenticated
+  using (public.is_admin_of_group(group_id));
+
+-- Only admins can delete announcements
+create policy "Admins can delete announcements"
+  on public.group_announcements for delete to authenticated
+  using (public.is_admin_of_group(group_id));

@@ -72,14 +72,51 @@ export function useGroupChat(groupId: string) {
     };
   }, [groupId, supabase]);
 
-  const sendMessage = async (userId: string, message: string) => {
+  const sendMessage = async (userId: string, message: string, fileUrl?: string, fileType?: string) => {
     const { error } = await supabase.from("group_messages").insert({
       group_id: groupId,
       user_id: userId,
-      message: message.trim(),
+      message: message.trim() || (fileUrl ? "Shared a file" : ""),
+      file_url: fileUrl || null,
+      file_type: fileType || null,
     });
     return error;
   };
 
-  return { messages, loading, sendMessage };
+  const uploadFile = async (file: File): Promise<{ url: string; type: string } | null> => {
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File must be under 5MB.");
+      return null;
+    }
+
+    const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
+    if (!allowed.includes(file.type)) {
+      alert("Only images (JPG, PNG, GIF, WebP) and PDFs are allowed.");
+      return null;
+    }
+
+    const ext = file.name.split(".").pop();
+    const path = `${groupId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+
+    const { error } = await supabase.storage
+      .from("chat-files")
+      .upload(path, file);
+
+    if (error) {
+      console.error("File upload error:", error);
+      alert("File upload failed: " + error.message);
+      return null;
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("chat-files")
+      .getPublicUrl(path);
+
+    return {
+      url: urlData.publicUrl,
+      type: file.type.startsWith("image/") ? "image" : "pdf",
+    };
+  };
+
+  return { messages, loading, sendMessage, uploadFile };
 }
