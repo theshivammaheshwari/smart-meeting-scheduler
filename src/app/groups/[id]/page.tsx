@@ -184,6 +184,17 @@ export default function GroupPage() {
       .order("name", { ascending: true });
     if (newContacts) setContacts(newContacts);
 
+    // Send email notifications (fire-and-forget)
+    fetch("/api/email/invite", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        emails: inviteEmails,
+        groupName: group?.name || "a group",
+        inviterName: user.user_metadata?.full_name || user.email || "Someone",
+      }),
+    }).catch(() => {});
+
     setInviteEmails([]);
     setInviting(false);
     setShowInvite(false);
@@ -236,6 +247,24 @@ export default function GroupPage() {
     if (!user || !group) return;
     const memberIds = members.map((m) => m.user_id);
     await scheduleMeeting(day, timeslot, user.id, memberIds, group.name);
+
+    // Send email to all members
+    const memberEmails = members
+      .filter((m) => m.user_id !== user.id)
+      .map((m) => m.users?.email)
+      .filter(Boolean);
+    if (memberEmails.length > 0) {
+      fetch("/api/email/meeting", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          emails: memberEmails,
+          groupName: group.name,
+          day: timeslot ? day : day,
+          time: timeslot,
+        }),
+      }).catch(() => {});
+    }
   };
 
   if (groupLoading) {
@@ -914,6 +943,26 @@ export default function GroupPage() {
                               if (!user) return;
                               setCreatingAnnouncement(true);
                               await createAnnouncement(user.id, announcementTitle, announcementContent);
+
+                              // Email all members about the announcement
+                              const memberEmails = members
+                                .filter((m) => m.user_id !== user.id)
+                                .map((m) => m.users?.email)
+                                .filter(Boolean);
+                              if (memberEmails.length > 0) {
+                                fetch("/api/email/announcement", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({
+                                    emails: memberEmails,
+                                    groupName: group?.name || "Group",
+                                    title: announcementTitle,
+                                    content: announcementContent,
+                                    authorName: user.user_metadata?.full_name || user.email || "Admin",
+                                  }),
+                                }).catch(() => {});
+                              }
+
                               setAnnouncementTitle("");
                               setAnnouncementContent("");
                               setShowAnnouncementForm(false);
