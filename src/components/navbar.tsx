@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Calendar, Bell, LogOut, Menu, X, Target } from "lucide-react";
+import { Calendar, Bell, LogOut, Menu, X, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
@@ -36,8 +36,8 @@ export function Navbar() {
               </Link>
               <Link href="/habits">
                 <Button variant="ghost" size="sm">
-                  <Target className="mr-2 h-4 w-4" />
-                  Habits
+                  <Briefcase className="mr-2 h-4 w-4" />
+                  Productivity
                 </Button>
               </Link>
               <Link href="/dashboard" className="relative">
@@ -91,8 +91,8 @@ export function Navbar() {
                 </Link>
                 <Link href="/habits" onClick={() => setMobileOpen(false)}>
                   <Button variant="ghost" className="w-full justify-start">
-                    <Target className="mr-2 h-4 w-4" />
-                    Habits
+                    <Briefcase className="mr-2 h-4 w-4" />
+                    Productivity
                   </Button>
                 </Link>
                 <Button variant="ghost" className="w-full justify-start" onClick={() => { signOut(); setMobileOpen(false); }}>

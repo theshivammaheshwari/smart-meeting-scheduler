@@ -120,7 +120,7 @@ export default function HabitTrackerPage() {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <h1 className="text-3xl font-bold">Habit Tracker</h1>
+        <h1 className="text-3xl font-bold">Productivity Tracker</h1>
         <p className="mt-1 text-muted-foreground">Build consistency. Track progress. Achieve goals.</p>
       </motion.div>
 
