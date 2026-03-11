@@ -127,7 +127,7 @@ export default function HabitTrackerPage() {
       {/* Dashboard Summary Cards */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Total Habits", value: totalHabits, icon: Target, color: "text-blue-500" },
+          { label: "Total Tasks", value: totalHabits, icon: Target, color: "text-blue-500" },
           { label: "Done Today", value: completedToday, icon: Check, color: "text-green-500" },
           { label: "Today's Progress", value: `${completionPct}%`, icon: TrendingUp, color: "text-amber-500" },
           { label: "Month", value: getMonthName(currentMonth), icon: BarChart3, color: "text-purple-500" },
@@ -221,7 +221,7 @@ export default function HabitTrackerPage() {
             <div className="mb-4 flex justify-end">
               <Button onClick={() => setShowAddHabit(true)}>
                 <Plus className="mr-2 h-4 w-4" />
-                Add Habit
+                Add Task
               </Button>
             </div>
 
@@ -243,12 +243,12 @@ export default function HabitTrackerPage() {
                   >
                     <Card>
                       <CardHeader>
-                        <CardTitle>New Habit</CardTitle>
-                        <CardDescription>Add a new habit to track daily.</CardDescription>
+                        <CardTitle>New Task</CardTitle>
+                        <CardDescription>Add a new task to track daily.</CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <Input
-                          placeholder="Habit name (e.g. Read 30 min)"
+                          placeholder="Task name (e.g. Read 30 min)"
                           value={newHabitName}
                           onChange={(e) => setNewHabitName(e.target.value)}
                           onKeyDown={(e) => { if (e.key === "Enter") handleAddHabit(); }}
@@ -293,7 +293,7 @@ export default function HabitTrackerPage() {
                             Cancel
                           </Button>
                           <Button onClick={handleAddHabit} disabled={!newHabitName.trim()} className="flex-1">
-                            Add Habit
+                            Add Task
                           </Button>
                         </div>
                       </CardContent>
@@ -321,7 +321,7 @@ export default function HabitTrackerPage() {
                   >
                     <Card>
                       <CardHeader>
-                        <CardTitle>Edit Habit</CardTitle>
+                        <CardTitle>Edit Task</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <Input
@@ -382,8 +382,8 @@ export default function HabitTrackerPage() {
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-16">
                   <Target className="mb-4 h-12 w-12 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold">No habits yet</h3>
-                  <p className="mt-1 text-muted-foreground">Add your first habit to start tracking!</p>
+                  <h3 className="text-lg font-semibold">No tasks yet</h3>
+                  <p className="mt-1 text-muted-foreground">Add your first task to start tracking!</p>
                 </CardContent>
               </Card>
             ) : (
@@ -393,7 +393,7 @@ export default function HabitTrackerPage() {
                     <div className="min-w-[900px]">
                       {/* Header: Day numbers with week dividers */}
                       <div className="mb-1 grid gap-0.5" style={{ gridTemplateColumns: `180px repeat(${daysInMonth}, 1fr) 80px 60px` }}>
-                        <div className="px-2 text-xs font-semibold text-muted-foreground flex items-center">My Habits</div>
+                        <div className="px-2 text-xs font-semibold text-muted-foreground flex items-center">My Tasks</div>
                         {Array.from({ length: daysInMonth }, (_, i) => {
                           const dayNum = i + 1;
                           const weekBorder = dayNum > 1 && getWeekNumber(dayNum) !== getWeekNumber(dayNum - 1);
@@ -637,13 +637,13 @@ function AnalyticsDashboard({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Trophy className="h-5 w-5 text-yellow-500" />
-            Habit Ranking
+            Task Ranking
           </CardTitle>
-          <CardDescription>Most to least consistent habits this month.</CardDescription>
+          <CardDescription>Most to least consistent tasks this month.</CardDescription>
         </CardHeader>
         <CardContent>
           {ranked.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No habits to rank yet.</p>
+            <p className="text-sm text-muted-foreground text-center py-8">No tasks to rank yet.</p>
           ) : (
             <div className="space-y-3">
               {ranked.map((h, i) => (
@@ -687,17 +687,17 @@ function AnalyticsDashboard({
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Weekly Progress</CardTitle>
-          <CardDescription>Completion percentage by week for each habit.</CardDescription>
+          <CardDescription>Completion percentage by week for each task.</CardDescription>
         </CardHeader>
         <CardContent>
           {habits.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">Add habits to see weekly stats.</p>
+            <p className="text-sm text-muted-foreground text-center py-8">Add tasks to see weekly stats.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Habit</th>
+                    <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Task</th>
                     {weeks.map((w) => (
                       <th key={w} className="text-center py-2 px-3 font-medium text-muted-foreground">Week {w}</th>
                     ))}
@@ -737,7 +737,7 @@ function AnalyticsDashboard({
             <TrendingUp className="h-5 w-5 text-blue-500" />
             Daily Completion Trend
           </CardTitle>
-          <CardDescription>Overall habit completion % per day this month.</CardDescription>
+          <CardDescription>Overall task completion % per day this month.</CardDescription>
         </CardHeader>
         <CardContent>
           {habits.length === 0 ? (
