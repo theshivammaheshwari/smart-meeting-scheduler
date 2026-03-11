@@ -47,14 +47,14 @@ export function Navbar() {
                 </Button>
               </Link>
               <Link href="/dashboard" className="relative">
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="overflow-visible">
                   <Bell className="h-5 w-5" />
-                  {unreadCount > 0 && (
-                    <Badge className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center">
-                      {unreadCount}
-                    </Badge>
-                  )}
                 </Button>
+                {unreadCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                    {unreadCount}
+                  </span>
+                )}
               </Link>
               <ThemeToggle />
               <Button variant="ghost" size="sm" onClick={signOut}>
