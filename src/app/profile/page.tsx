@@ -112,7 +112,7 @@ export default function ProfilePage() {
     setUploading(true);
 
     const fileExt = file.name.split(".").pop();
-    const filePath = `avatars/${user.id}.${fileExt}`;
+    const filePath = `${user.id}.${fileExt}`;
 
     const { error: uploadError } = await supabase.storage
       .from("avatars")

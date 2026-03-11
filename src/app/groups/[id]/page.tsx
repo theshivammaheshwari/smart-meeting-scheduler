@@ -23,6 +23,7 @@ import {
   Video,
   MessageCircle,
   Link2,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -174,6 +175,17 @@ export default function GroupPage() {
     setInviting(false);
     setShowInvite(false);
     refetchGroup();
+  };
+
+  const handleRemoveMember = async (memberId: string) => {
+    if (!confirm("Are you sure you want to remove this member?")) return;
+    await supabase
+      .from("group_members")
+      .delete()
+      .eq("group_id", groupId)
+      .eq("user_id", memberId);
+    refetchGroup();
+    refetchAvail();
   };
 
   const recommendedSlots = findBestSlots(allAvailability, members.length);
@@ -625,7 +637,12 @@ export default function GroupPage() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 10 }}
           >
-            <MembersList members={members} />
+            <MembersList
+              members={members}
+              userRole={userRole}
+              currentUserId={user?.id}
+              onRemove={handleRemoveMember}
+            />
           </motion.div>
         )}
 
@@ -641,6 +658,7 @@ export default function GroupPage() {
               isAdmin={userRole === "admin"}
               onSchedule={handleSchedule}
               confirmedMeeting={meeting}
+              allMembers={members}
             />
           </motion.div>
         )}
@@ -922,8 +940,14 @@ function AvailabilityGrid({
 
 function MembersList({
   members,
+  userRole,
+  currentUserId,
+  onRemove,
 }: {
   members: { user_id: string; role: string; users: { full_name: string | null; email: string; avatar_url: string | null } }[];
+  userRole: "admin" | "member" | null;
+  currentUserId: string | undefined;
+  onRemove: (memberId: string) => void;
 }) {
   return (
     <Card>
@@ -961,6 +985,17 @@ function MembersList({
                   Admin
                 </Badge>
               )}
+              {userRole === "admin" && member.role !== "admin" && member.user_id !== currentUserId && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                  onClick={() => onRemove(member.user_id)}
+                  title="Remove member"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </motion.div>
           ))}
         </div>
@@ -978,11 +1013,13 @@ function MeetingResults({
   isAdmin,
   onSchedule,
   confirmedMeeting,
+  allMembers,
 }: {
   slots: RecommendedSlot[];
   isAdmin: boolean;
   onSchedule: (day: string, timeslot: string) => void;
   confirmedMeeting: Meeting | null;
+  allMembers: { user_id: string; role: string; users: { full_name: string | null; email: string; avatar_url: string | null } }[];
 }) {
   if (slots.length === 0) {
     return (
@@ -1045,6 +1082,25 @@ function MeetingResults({
                     <span className="text-sm text-muted-foreground">
                       {slot.count} member{slot.count !== 1 ? "s" : ""} ({slot.percentage}%)
                     </span>
+                  </div>
+                  {/* Available / Unavailable members */}
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {allMembers.map((m) => {
+                      const isAvailable = slot.members.includes(m.user_id);
+                      return (
+                        <span
+                          key={m.user_id}
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                            isAvailable
+                              ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                              : "bg-red-500/10 text-red-500 dark:text-red-400"
+                          }`}
+                        >
+                          <span className={`h-1.5 w-1.5 rounded-full ${isAvailable ? "bg-green-500" : "bg-red-500"}`} />
+                          {m.users?.full_name || m.users?.email?.split("@")[0] || "Unknown"}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
                 {isConfirmed ? (
