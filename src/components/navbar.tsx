@@ -1,19 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { Calendar, Bell, LogOut, Menu, X, Briefcase, UserCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { Calendar, Bell, LogOut, Menu, X, Briefcase, UserCircle, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotifications } from "@/hooks/use-notifications";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export function Navbar() {
   const { user, signOut } = useAuth();
-  const { unreadCount } = useNotifications(user?.id);
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(user?.id);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   return (
     <motion.nav
@@ -46,16 +60,86 @@ export function Navbar() {
                   Profile
                 </Button>
               </Link>
-              <Link href="/dashboard" className="relative">
-                <Button variant="ghost" size="icon" className="overflow-visible">
+              {/* Notification Bell with Dropdown */}
+              <div className="relative" ref={notifRef}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="overflow-visible"
+                  onClick={() => setShowNotifications(!showNotifications)}
+                >
                   <Bell className="h-5 w-5" />
                 </Button>
                 {unreadCount > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                  <span
+                    className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground pointer-events-none"
+                  >
                     {unreadCount}
                   </span>
                 )}
-              </Link>
+
+                {/* Dropdown Panel */}
+                <AnimatePresence>
+                  {showNotifications && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-12 w-80 rounded-lg border bg-background shadow-lg z-[100]"
+                    >
+                      <div className="flex items-center justify-between border-b px-4 py-3">
+                        <h3 className="font-semibold text-sm">Notifications</h3>
+                        {unreadCount > 0 && (
+                          <button
+                            onClick={() => markAllAsRead()}
+                            className="flex items-center gap-1 text-xs text-primary hover:underline"
+                          >
+                            <CheckCheck className="h-3.5 w-3.5" />
+                            Mark all read
+                          </button>
+                        )}
+                      </div>
+                      <div className="max-h-80 overflow-y-auto">
+                        {notifications.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                            <Bell className="h-6 w-6 mb-2" />
+                            <span className="text-sm">No notifications</span>
+                          </div>
+                        ) : (
+                          notifications.map((n) => (
+                            <button
+                              key={n.id}
+                              onClick={() => {
+                                if (!n.read) markAsRead(n.id);
+                                if (n.group_id) {
+                                  router.push(`/groups/${n.group_id}`);
+                                  setShowNotifications(false);
+                                }
+                              }}
+                              className={`w-full text-left px-4 py-3 border-b last:border-b-0 transition-colors hover:bg-muted/50 ${
+                                !n.read ? "bg-primary/5" : ""
+                              }`}
+                            >
+                              <div className="flex items-start gap-2">
+                                {!n.read && (
+                                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm leading-snug">{n.message}</p>
+                                  <p className="text-[11px] text-muted-foreground mt-1">
+                                    {timeAgo(n.created_at)}
+                                  </p>
+                                </div>
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
               <ThemeToggle />
               <Button variant="ghost" size="sm" onClick={signOut}>
                 <LogOut className="mr-2 h-4 w-4" />
@@ -122,4 +206,15 @@ export function Navbar() {
       )}
     </motion.nav>
   );
+}
+
+function timeAgo(dateStr: string): string {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diff = Math.floor((now - then) / 1000);
+  if (diff < 60) return "Just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  return new Date(dateStr).toLocaleDateString();
 }
