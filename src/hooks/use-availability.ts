@@ -68,17 +68,85 @@ export function useAvailability(groupId: string, userId: string | undefined) {
     );
 
     if (existing) {
+      // Optimistic remove
+      setAvailability((prev) => prev.filter((a) => a.id !== existing.id));
+      setAllAvailability((prev) => prev.filter((a) => a.id !== existing.id));
       await supabase.from("availability").delete().eq("id", existing.id);
     } else {
-      await supabase.from("availability").insert({
+      // Optimistic add
+      const tempId = crypto.randomUUID();
+      const newEntry: Availability = {
+        id: tempId,
         group_id: groupId,
         user_id: userId,
         day,
         timeslot,
-      });
-    }
+        created_at: new Date().toISOString(),
+      };
+      setAvailability((prev) => [...prev, newEntry]);
+      setAllAvailability((prev) => [...prev, newEntry]);
 
-    await fetchAvailability();
+      const { data } = await supabase
+        .from("availability")
+        .insert({ group_id: groupId, user_id: userId, day, timeslot })
+        .select()
+        .single();
+
+      // Replace temp entry with real one
+      if (data) {
+        setAvailability((prev) => prev.map((a) => (a.id === tempId ? data : a)));
+        setAllAvailability((prev) => prev.map((a) => (a.id === tempId ? data : a)));
+      }
+    }
+  };
+
+  const selectAllDay = async (day: string, timeslots: string[]) => {
+    if (!userId) return;
+    const missing = timeslots.filter(
+      (ts) => !availability.some((a) => a.day === day && a.timeslot === ts)
+    );
+    if (missing.length === 0) return;
+
+    // Optimistic add all missing
+    const tempEntries: Availability[] = missing.map((ts) => ({
+      id: crypto.randomUUID(),
+      group_id: groupId,
+      user_id: userId,
+      day,
+      timeslot: ts,
+      created_at: new Date().toISOString(),
+    }));
+    setAvailability((prev) => [...prev, ...tempEntries]);
+    setAllAvailability((prev) => [...prev, ...tempEntries]);
+
+    // Insert all at once
+    const rows = missing.map((ts) => ({ group_id: groupId, user_id: userId, day, timeslot: ts }));
+    const { data } = await supabase.from("availability").insert(rows).select();
+
+    if (data) {
+      // Replace temp entries with real ones
+      const tempIds = new Set(tempEntries.map((t) => t.id));
+      setAvailability((prev) => [...prev.filter((a) => !tempIds.has(a.id)), ...data]);
+      setAllAvailability((prev) => [...prev.filter((a) => !tempIds.has(a.id)), ...data]);
+    }
+  };
+
+  const clearAllDay = async (day: string) => {
+    if (!userId) return;
+    const toRemove = availability.filter((a) => a.day === day);
+    if (toRemove.length === 0) return;
+
+    // Optimistic remove
+    const removeIds = new Set(toRemove.map((a) => a.id));
+    setAvailability((prev) => prev.filter((a) => !removeIds.has(a.id)));
+    setAllAvailability((prev) => prev.filter((a) => !removeIds.has(a.id)));
+
+    await supabase
+      .from("availability")
+      .delete()
+      .eq("group_id", groupId)
+      .eq("user_id", userId)
+      .eq("day", day);
   };
 
   const isSelected = (day: string, timeslot: string): boolean => {
@@ -94,6 +162,8 @@ export function useAvailability(groupId: string, userId: string | undefined) {
     allAvailability,
     loading,
     toggleSlot,
+    selectAllDay,
+    clearAllDay,
     isSelected,
     getSlotCount,
     refetch: fetchAvailability,

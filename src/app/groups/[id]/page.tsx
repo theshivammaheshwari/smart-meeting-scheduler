@@ -57,6 +57,8 @@ export default function GroupPage() {
     allAvailability,
     loading: availLoading,
     toggleSlot,
+    selectAllDay,
+    clearAllDay,
     isSelected,
     getSlotCount,
     refetch: refetchAvail,
@@ -502,6 +504,8 @@ export default function GroupPage() {
               isSelected={isSelected}
               getSlotCount={getSlotCount}
               toggleSlot={toggleSlot}
+              selectAllDay={selectAllDay}
+              clearAllDay={clearAllDay}
               totalMembers={members.length}
               loading={availLoading}
               slotDuration={group?.slot_duration ?? 30}
@@ -556,6 +560,8 @@ function AvailabilityGrid({
   isSelected,
   getSlotCount,
   toggleSlot,
+  selectAllDay,
+  clearAllDay,
   totalMembers,
   loading,
   slotDuration,
@@ -567,6 +573,8 @@ function AvailabilityGrid({
   isSelected: (day: string, timeslot: string) => boolean;
   getSlotCount: (day: string, timeslot: string) => number;
   toggleSlot: (day: string, timeslot: string) => void;
+  selectAllDay: (day: string, timeslots: string[]) => void;
+  clearAllDay: (day: string) => void;
   totalMembers: number;
   loading: boolean;
   slotDuration: number;
@@ -605,7 +613,7 @@ function AvailabilityGrid({
         <div className="overflow-x-auto">
           <div className="min-w-[640px]">
             {/* Day headers */}
-            <div className="mb-2 grid grid-cols-[80px_repeat(7,1fr)] gap-1">
+            <div className="mb-1 grid grid-cols-[80px_repeat(7,1fr)] gap-1">
               <div />
               {DAYS.map((day) => (
                 <div key={day} className="text-center text-xs font-medium text-muted-foreground sm:text-sm">
@@ -614,6 +622,32 @@ function AvailabilityGrid({
                 </div>
               ))}
             </div>
+
+            {/* Select All / Clear All buttons */}
+            {!isLocked && (
+              <div className="mb-2 grid grid-cols-[80px_repeat(7,1fr)] gap-1">
+                <div />
+                {DAYS.map((day) => (
+                  <div key={day} className="flex items-center justify-center gap-1">
+                    <button
+                      onClick={() => selectAllDay(day, timeslots)}
+                      className="rounded px-1.5 py-0.5 text-[10px] font-medium text-primary hover:bg-primary/10 transition-colors"
+                      title={`Select all ${day}`}
+                    >
+                      All
+                    </button>
+                    <span className="text-muted-foreground/40 text-[10px]">|</span>
+                    <button
+                      onClick={() => clearAllDay(day)}
+                      className="rounded px-1.5 py-0.5 text-[10px] font-medium text-destructive hover:bg-destructive/10 transition-colors"
+                      title={`Clear all ${day}`}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Time slots */}
             <div className="space-y-0.5">
