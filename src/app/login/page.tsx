@@ -36,7 +36,7 @@ export default function LoginPage() {
             >
               <Calendar className="h-8 w-8 text-primary" />
             </motion.div>
-            <CardTitle className="text-2xl">Welcome to MeetSync</CardTitle>
+            <CardTitle className="text-2xl">Welcome to SmartSync</CardTitle>
             <CardDescription>
               Sign in with your Google account to get started with smart meeting scheduling.
             </CardDescription>

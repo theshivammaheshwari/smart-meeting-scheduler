@@ -126,7 +126,7 @@ export default function LandingPage() {
             className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground sm:text-xl"
           >
             Stop the back-and-forth emails. Create a group, share your availability,
-            and let MeetSync find when everyone is free.
+            and let SmartSync find when everyone is free.
           </motion.p>
 
           <motion.div
@@ -307,7 +307,7 @@ export default function LandingPage() {
             custom={1}
             className="mt-4 text-lg text-muted-foreground"
           >
-            Join thousands of teams who use MeetSync to find the perfect meeting time.
+            Join thousands of teams who use SmartSync to find the perfect meeting time.
           </motion.p>
           <motion.div variants={fadeUp} custom={2} className="mt-8">
             <Link href="/login">
@@ -417,10 +417,10 @@ export default function LandingPage() {
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />
-              <span className="font-semibold">MeetSync</span>
+              <span className="font-semibold">SmartSync</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} MeetSync. All rights reserved.
+              &copy; {new Date().getFullYear()} SmartSync. All rights reserved.
             </p>
           </div>
         </div>
