@@ -510,3 +510,95 @@ begin
   return target_group_id;
 end;
 $$;
+
+-- ========================
+-- HABIT TRACKER TABLES
+-- ========================
+
+-- 10. Habits table
+create table if not exists public.habits (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.users(id) on delete cascade not null,
+  name text not null,
+  color text default '#22c55e',
+  icon text default '🎯',
+  sort_order int default 0,
+  created_at timestamptz default now()
+);
+
+-- 11. Habit Entries (daily check-ins)
+create table if not exists public.habit_entries (
+  id uuid default gen_random_uuid() primary key,
+  habit_id uuid references public.habits(id) on delete cascade not null,
+  date date not null,
+  completed boolean default false,
+  unique(habit_id, date)
+);
+
+-- 12. Mood Entries (daily mood/energy/motivation)
+create table if not exists public.mood_entries (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.users(id) on delete cascade not null,
+  date date not null,
+  mood int check (mood >= 1 and mood <= 10) default 5,
+  energy int check (energy >= 1 and energy <= 10) default 5,
+  motivation int check (motivation >= 1 and motivation <= 10) default 5,
+  created_at timestamptz default now(),
+  unique(user_id, date)
+);
+
+-- RLS for habit tables
+alter table public.habits enable row level security;
+alter table public.habit_entries enable row level security;
+alter table public.mood_entries enable row level security;
+
+-- Habits policies: users can only manage their own habits
+create policy "Users can view own habits"
+  on public.habits for select to authenticated
+  using (user_id = auth.uid());
+
+create policy "Users can insert own habits"
+  on public.habits for insert to authenticated
+  with check (user_id = auth.uid());
+
+create policy "Users can update own habits"
+  on public.habits for update to authenticated
+  using (user_id = auth.uid());
+
+create policy "Users can delete own habits"
+  on public.habits for delete to authenticated
+  using (user_id = auth.uid());
+
+-- Habit entries policies: users manage entries for their own habits
+create policy "Users can view own habit entries"
+  on public.habit_entries for select to authenticated
+  using (habit_id in (select id from public.habits where user_id = auth.uid()));
+
+create policy "Users can insert own habit entries"
+  on public.habit_entries for insert to authenticated
+  with check (habit_id in (select id from public.habits where user_id = auth.uid()));
+
+create policy "Users can update own habit entries"
+  on public.habit_entries for update to authenticated
+  using (habit_id in (select id from public.habits where user_id = auth.uid()));
+
+create policy "Users can delete own habit entries"
+  on public.habit_entries for delete to authenticated
+  using (habit_id in (select id from public.habits where user_id = auth.uid()));
+
+-- Mood entries policies: users manage their own mood entries
+create policy "Users can view own mood entries"
+  on public.mood_entries for select to authenticated
+  using (user_id = auth.uid());
+
+create policy "Users can insert own mood entries"
+  on public.mood_entries for insert to authenticated
+  with check (user_id = auth.uid());
+
+create policy "Users can update own mood entries"
+  on public.mood_entries for update to authenticated
+  using (user_id = auth.uid());
+
+create policy "Users can delete own mood entries"
+  on public.mood_entries for delete to authenticated
+  using (user_id = auth.uid());

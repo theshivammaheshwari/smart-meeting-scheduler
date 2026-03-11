@@ -74,3 +74,32 @@ export interface RecommendedSlot {
 export interface GroupWithMembers extends Group {
   group_members: (GroupMember & { users: User })[];
 }
+
+/* ─── Habit Tracker Types ─── */
+
+export interface Habit {
+  id: string;
+  user_id: string;
+  name: string;
+  color: string;
+  icon: string;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface HabitEntry {
+  id: string;
+  habit_id: string;
+  date: string; // 'YYYY-MM-DD'
+  completed: boolean;
+}
+
+export interface MoodEntry {
+  id: string;
+  user_id: string;
+  date: string; // 'YYYY-MM-DD'
+  mood: number; // 1-10
+  energy: number; // 1-10
+  motivation: number; // 1-10
+  created_at: string;
+}
